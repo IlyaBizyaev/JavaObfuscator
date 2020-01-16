@@ -1,7 +1,6 @@
 package ru.itmo.bizyaev;
 import org.antlr.v4.runtime.RuleContext;
 import org.antlr.v4.runtime.tree.*;
-import ru.itmo.bizyaev.generated.JavaBasicBaseVisitor;
 import ru.itmo.bizyaev.generated.JavaBasicParser;
 import ru.itmo.bizyaev.generated.JavaBasicVisitor;
 
@@ -40,10 +39,10 @@ public class JavaObfuscatingVisitor extends AbstractParseTreeVisitor<String> imp
     @Override
     public String visitMethodDeclaration(JavaBasicParser.MethodDeclarationContext ctx) {
         pushScope();
-        String type = ctx.typeType() != null ? visitTypeType(ctx.typeType()) : "void";
-        String contents = ctx.block() != null ? " " + visitBlock(ctx.block()) : ";";
-        String result = type + " " + ctx.IDENTIFIER().getText() + visitFormalParameters(ctx.formalParameters())
-                 + visitOptionalBrackets(ctx.optionalBrackets()) + contents;
+        String type = ctx.typeType() != null ? visit(ctx.typeType()) : "void";
+        String contents = ctx.block() != null ? " " + visit(ctx.block()) : ";";
+        String result = type + " " + ctx.IDENTIFIER().getText() + visit(ctx.formalParameters())
+                 + visit(ctx.optionalBrackets()) + contents;
         popScope();
         return result;
     }
@@ -51,7 +50,7 @@ public class JavaObfuscatingVisitor extends AbstractParseTreeVisitor<String> imp
     @Override
     public String visitConstructorDeclaration(JavaBasicParser.ConstructorDeclarationContext ctx) {
         pushScope();
-        String result = ctx.IDENTIFIER().getText() + " " + visitFormalParameters(ctx.formalParameters()) + visitBlock(ctx.block());
+        String result = ctx.IDENTIFIER().getText() + " " + visit(ctx.formalParameters()) + visit(ctx.block());
         popScope();
         return result;
     }
@@ -68,12 +67,12 @@ public class JavaObfuscatingVisitor extends AbstractParseTreeVisitor<String> imp
 
     @Override
     public String visitCompilationUnit(JavaBasicParser.CompilationUnitContext ctx) {
-        return ctx.typeDeclaration().stream().map(this::visitTypeDeclaration).collect(Collectors.joining("\n"));
+        return ctx.typeDeclaration().stream().map(this::visit).collect(Collectors.joining("\n"));
     }
 
     @Override
     public String visitVariableDeclaratorId(JavaBasicParser.VariableDeclaratorIdContext ctx) {
-        return replaceId(ctx.IDENTIFIER(), true) + visitOptionalBrackets(ctx.optionalBrackets());
+        return replaceId(ctx.IDENTIFIER(), true) + visit(ctx.optionalBrackets());
     }
 
     @Override
@@ -84,13 +83,13 @@ public class JavaObfuscatingVisitor extends AbstractParseTreeVisitor<String> imp
     @Override
     public String visitTypeDeclaration(JavaBasicParser.TypeDeclarationContext ctx) {
         String mods = ctx.modifier().stream().map(RuleContext::getText).collect(Collectors.joining(" "));
-        String classDeclaration = visitClassDeclaration(ctx.classDeclaration());
+        String classDeclaration = visit(ctx.classDeclaration());
         return mods + classDeclaration + ";";
     }
 
     @Override
     public String visitClassDeclaration(JavaBasicParser.ClassDeclarationContext ctx) {
-        return "class " + ctx.IDENTIFIER().getText() + visitClassBody(ctx.classBody());
+        return "class " + ctx.IDENTIFIER().getText() + visit(ctx.classBody());
     }
 
     @Override
@@ -107,13 +106,13 @@ public class JavaObfuscatingVisitor extends AbstractParseTreeVisitor<String> imp
     @Override
     public String visitBlockClassBodyDecl(JavaBasicParser.BlockClassBodyDeclContext ctx) {
         String staticMod = ctx.STATIC() == null ? "" : ctx.STATIC().getText() + " ";
-        return staticMod + visitBlock(ctx.block());
+        return staticMod + visit(ctx.block());
     }
 
     @Override
     public String visitMemberClassBodyDecl(JavaBasicParser.MemberClassBodyDeclContext ctx) {
         String mods = ctx.modifier().stream().map(RuleContext::getText).collect(Collectors.joining(" "));
-        return mods + (ctx.modifier().size() > 0 ? " " : "") + visitMemberDeclaration(ctx.memberDeclaration());
+        return mods + (ctx.modifier().size() > 0 ? " " : "") + visit(ctx.memberDeclaration());
     }
 
     @Override
@@ -123,7 +122,7 @@ public class JavaObfuscatingVisitor extends AbstractParseTreeVisitor<String> imp
 
     @Override
     public String visitFieldDeclaration(JavaBasicParser.FieldDeclarationContext ctx) {
-        return visitTypeType(ctx.typeType()) + " " + visitVariableDeclarators(ctx.variableDeclarators()) + ";";
+        return visit(ctx.typeType()) + " " + visit(ctx.variableDeclarators()) + ";";
     }
 
     @Override
@@ -133,8 +132,8 @@ public class JavaObfuscatingVisitor extends AbstractParseTreeVisitor<String> imp
 
     @Override
     public String visitVariableDeclarator(JavaBasicParser.VariableDeclaratorContext ctx) {
-        String varInit = ctx.variableInitializer() == null ? "" : (" = " + visitVariableInitializer(ctx.variableInitializer()));
-        return visitVariableDeclaratorId(ctx.variableDeclaratorId()) + varInit;
+        String varInit = ctx.variableInitializer() == null ? "" : (" = " + visit(ctx.variableInitializer()));
+        return visit(ctx.variableDeclaratorId()) + varInit;
     }
 
     @Override
@@ -145,7 +144,7 @@ public class JavaObfuscatingVisitor extends AbstractParseTreeVisitor<String> imp
 
     @Override
     public String visitFormalParameters(JavaBasicParser.FormalParametersContext ctx) {
-        String paramList = ctx.formalParameterList() == null ? "" : visitFormalParameterList(ctx.formalParameterList());
+        String paramList = ctx.formalParameterList() == null ? "" : visit(ctx.formalParameterList());
         return "(" + paramList + ")";
     }
 
@@ -157,13 +156,13 @@ public class JavaObfuscatingVisitor extends AbstractParseTreeVisitor<String> imp
     @Override
     public String visitFormalParameter(JavaBasicParser.FormalParameterContext ctx) {
         String finalMod = ctx.FINAL() == null ? "" : "final ";
-        return finalMod + visitTypeType(ctx.typeType()) + " " + visitVariableDeclaratorId(ctx.variableDeclaratorId());
+        return finalMod + visit(ctx.typeType()) + " " + visit(ctx.variableDeclaratorId());
     }
 
     @Override
     public String visitVarDeclBlockStatement(JavaBasicParser.VarDeclBlockStatementContext ctx) {
         String finalMod = ctx.FINAL() == null ? "" : "final ";
-        return finalMod + visitTypeType(ctx.typeType()) + " " + visitVariableDeclarators(ctx.variableDeclarators()) + ";";
+        return finalMod + visit(ctx.typeType()) + " " + visit(ctx.variableDeclarators()) + ";";
     }
 
     @Override
@@ -173,12 +172,12 @@ public class JavaObfuscatingVisitor extends AbstractParseTreeVisitor<String> imp
 
     @Override
     public String visitTypeDeclBlockStatement(JavaBasicParser.TypeDeclBlockStatementContext ctx) {
-        return visitTypeDeclaration(ctx.typeDeclaration());
+        return visit(ctx.typeDeclaration());
     }
 
     @Override
     public String visitNewBlockStatement(JavaBasicParser.NewBlockStatementContext ctx) {
-        return visitBlock(ctx.block());
+        return visit(ctx.block());
     }
 
     @Override
@@ -202,7 +201,7 @@ public class JavaObfuscatingVisitor extends AbstractParseTreeVisitor<String> imp
     @Override
     public String visitMethodCall(JavaBasicParser.MethodCallContext ctx) {
         String callee = ctx.IDENTIFIER() != null ? ctx.IDENTIFIER().getText() : "this";
-        return callee + "(" + visitExpressionList(ctx.expressionList()) + ")";
+        return callee + "(" + visit(ctx.expressionList()) + ")";
     }
 
     @Override
@@ -212,30 +211,30 @@ public class JavaObfuscatingVisitor extends AbstractParseTreeVisitor<String> imp
 
     @Override
     public String visitCastExpression(JavaBasicParser.CastExpressionContext ctx) {
-        return "(" + visitTypeType(ctx.typeType()) + ") " + visit(ctx.expression());
+        return "(" + visit(ctx.typeType()) + ") " + visit(ctx.expression());
     }
 
     @Override
     public String visitDotExpression(JavaBasicParser.DotExpressionContext ctx) {
-        String afterDot = ctx.IDENTIFIER() != null ? ctx.IDENTIFIER().getText() : visitMethodCall(ctx.methodCall());
+        String afterDot = ctx.IDENTIFIER() != null ? ctx.IDENTIFIER().getText() : visit(ctx.methodCall());
         return visit(ctx.expression()) + "." + afterDot;
     }
 
     @Override
     public String visitSubscriptExpression(JavaBasicParser.SubscriptExpressionContext ctx) {
-        return visitChildren(ctx);
+        return visit(ctx.ext) + "[" + visit(ctx.subscript) + "]";
     }
 
     @Override
     public String visitNewExpression(JavaBasicParser.NewExpressionContext ctx) {
-        String toCreate = ctx.qualifiedName() == null ? visitPrimitiveType(ctx.primitiveType()) : visitQualifiedName(ctx.qualifiedName());
-        String rest = ctx.arrayCreatorRest() == null ? visitClassCreatorRest(ctx.classCreatorRest()) : visit(ctx.arrayCreatorRest());
+        String toCreate = ctx.qualifiedName() == null ? visit(ctx.primitiveType()) : visit(ctx.qualifiedName());
+        String rest = ctx.arrayCreatorRest() == null ? visit(ctx.classCreatorRest()) : visit(ctx.arrayCreatorRest());
         return "new " + toCreate + rest;
     }
 
     @Override
     public String visitMethodCallExpression(JavaBasicParser.MethodCallExpressionContext ctx) {
-        return visitMethodCall(ctx.methodCall());
+        return visit(ctx.methodCall());
     }
 
     @Override
@@ -269,25 +268,25 @@ public class JavaObfuscatingVisitor extends AbstractParseTreeVisitor<String> imp
     @Override
     public String visitInitArrayCreatorRest(JavaBasicParser.InitArrayCreatorRestContext ctx) {
         String brackets = new String(new char[ctx.LBRACK().size()]).replace("\0", "[]");
-        return brackets + visitArrayInitializer(ctx.arrayInitializer());
+        return brackets + visit(ctx.arrayInitializer());
     }
 
     @Override
     public String visitExprArrayCreatorRest(JavaBasicParser.ExprArrayCreatorRestContext ctx) {
         String expressions = ctx.expression().stream().map((x) -> "[" + visit(x) + "]").collect(Collectors.joining());
-        return expressions + visitOptionalBrackets(ctx.optionalBrackets());
+        return expressions + visit(ctx.optionalBrackets());
     }
 
     @Override
     public String visitClassCreatorRest(JavaBasicParser.ClassCreatorRestContext ctx) {
-        String expList = ctx.expressionList() == null ? "" : visitExpressionList(ctx.expressionList());
-        return "(" + expList + ")" + visitClassBody(ctx.classBody());
+        String expList = ctx.expressionList() == null ? "" : visit(ctx.expressionList());
+        return "(" + expList + ")" + visit(ctx.classBody());
     }
 
     @Override
     public String visitTypeType(JavaBasicParser.TypeTypeContext ctx) {
-        String obj = ctx.qualifiedName() != null ? visitQualifiedName(ctx.qualifiedName()) : visitPrimitiveType(ctx.primitiveType());
-        return obj + visitOptionalBrackets(ctx.optionalBrackets());
+        String obj = ctx.qualifiedName() != null ? visit(ctx.qualifiedName()) : visit(ctx.primitiveType());
+        return obj + visit(ctx.optionalBrackets());
     }
 
     @Override

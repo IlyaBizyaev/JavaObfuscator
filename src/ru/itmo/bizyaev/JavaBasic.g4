@@ -80,7 +80,7 @@ methodCall: (IDENTIFIER | THIS) '(' expressionList? ')';
 expression
     : primary   #primaryExpression
     | expression bop='.' ( IDENTIFIER | methodCall) #dotExpression
-    | expression '[' expression ']'  #subscriptExpression
+    | ext=expression '[' subscript=expression ']'  #subscriptExpression
     | methodCall #methodCallExpression
     | NEW (qualifiedName | primitiveType) (arrayCreatorRest | classCreatorRest) #newExpression
     | '(' typeType ')' expression #castExpression
