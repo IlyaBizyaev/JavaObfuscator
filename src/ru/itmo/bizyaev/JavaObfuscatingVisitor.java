@@ -18,6 +18,8 @@ public class JavaObfuscatingVisitor extends AbstractParseTreeVisitor<String> imp
     private Deque<ArrayList<String>> scopeCleanupStack;
     // Last generated obfuscated variable name
     private String lastIdReplacement;
+    // States whether or not current parse context allows variable renaming
+    private boolean isRenamingAllowed;
     // Current indentation level (changes with scope entry / quit)
     private int currentIndentLevel;
 
@@ -25,16 +27,19 @@ public class JavaObfuscatingVisitor extends AbstractParseTreeVisitor<String> imp
         idReplacementMap = new HashMap<>();
         scopeCleanupStack = new ArrayDeque<>();
         lastIdReplacement = "I0100";
+        isRenamingAllowed = false;
         currentIndentLevel = 0;
     }
 
     @Override
     public String visitMethodDeclaration(JavaBasicParser.MethodDeclarationContext ctx) {
         pushScope();
+        isRenamingAllowed = true;
         String type = ctx.typeType() != null ? visit(ctx.typeType()) : "void";
         String params = visit(ctx.formalParameters());
         String contents = ctx.block() != null ? " " + visit(ctx.block()) : ";";
         String result = type + " " + ctx.IDENTIFIER().getText() + params + visit(ctx.optionalBrackets()) + contents;
+        isRenamingAllowed = false;
         popScope();
         return result;
     }
@@ -42,7 +47,10 @@ public class JavaObfuscatingVisitor extends AbstractParseTreeVisitor<String> imp
     @Override
     public String visitConstructorDeclaration(JavaBasicParser.ConstructorDeclarationContext ctx) {
         pushScope();
-        String result = ctx.IDENTIFIER().getText() + " " + visit(ctx.formalParameters()) + visit(ctx.block());
+        isRenamingAllowed = true;
+        String result = String.format("%s%s %s", ctx.IDENTIFIER().getText(),
+                                                 visit(ctx.formalParameters()), visit(ctx.block()));
+        isRenamingAllowed = false;
         popScope();
         return result;
     }
@@ -155,7 +163,8 @@ public class JavaObfuscatingVisitor extends AbstractParseTreeVisitor<String> imp
     @Override
     public String visitVarDeclBlockStatement(JavaBasicParser.VarDeclBlockStatementContext ctx) {
         String finalMod = optionalModifier(ctx.FINAL());
-        return String.format("%s%s %s;", finalMod, visit(ctx.typeType()), visit(ctx.variableDeclarators()));
+        String result = String.format("%s%s %s;", finalMod, visit(ctx.typeType()), visit(ctx.variableDeclarators()));
+        return result;
     }
 
     @Override
@@ -370,6 +379,9 @@ public class JavaObfuscatingVisitor extends AbstractParseTreeVisitor<String> imp
 
     private String replaceId(TerminalNode identifier, boolean canCreateNew) {
         String varName = identifier.getText();
+        if (!isRenamingAllowed) {
+            return varName;
+        }
         if (idReplacementMap.containsKey(varName)) {
             return idReplacementMap.get(varName);
         } else if (canCreateNew) {

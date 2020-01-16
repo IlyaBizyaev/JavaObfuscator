@@ -1,4 +1,5 @@
 package ru.itmo.bizyaev;
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -19,8 +20,8 @@ public class Main {
         try {
             String obfuscatedCode = obfuscate(args[0]);
             System.out.println(obfuscatedCode);
-            try {
-                Files.newBufferedWriter(Paths.get(args[1]), StandardCharsets.UTF_8).write(obfuscatedCode);
+            try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(args[1]), StandardCharsets.UTF_8)) {
+                writer.write(obfuscatedCode);
             } catch (IOException e) {
                 System.err.println("Failed to write obfuscation result: " + e.getMessage());
             }
@@ -33,6 +34,6 @@ public class Main {
         JavaBasicLexer lexer = new JavaBasicLexer(CharStreams.fromFileName(inputFilePath, StandardCharsets.UTF_8));
         JavaBasicParser parser = new JavaBasicParser(new CommonTokenStream(lexer));
         JavaObfuscatingVisitor visitor = new JavaObfuscatingVisitor();
-        return visitor.visit(parser.compilationUnit()); // .exception
+        return visitor.visitCompilationUnit(parser.compilationUnit()); // .exception
     }
 }
