@@ -1,5 +1,6 @@
 .idea
 *.iml
 out/
+src/**/generated
 input.java
 obfuscated.java
