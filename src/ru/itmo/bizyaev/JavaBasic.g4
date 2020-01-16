@@ -89,7 +89,7 @@ expression
     | prefix=('~'|'!') expression #opExpression
     | expression bop=('*'|'/'|'%') expression #opExpression
     | expression bop=('+'|'-') expression #opExpression
-    | expression ('<' '<' | '>' '>' '>' | '>' '>') expression #opExpression
+    | expression bop=('<<' | '>>>' | '>>') expression #opExpression
     | expression bop=('<=' | '>=' | '>' | '<') expression #opExpression
     | expression bop=('==' | '!=') expression #opExpression
     | expression bop='&' expression #opExpression
