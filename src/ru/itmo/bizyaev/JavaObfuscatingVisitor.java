@@ -16,6 +16,10 @@ public class JavaObfuscatingVisitor extends AbstractParseTreeVisitor<String> imp
     private Map<String, String> idReplacementMap;
     // Stack of lists of variables to delete from replacement map after the end of the current scope
     private Deque<ArrayList<String>> scopeCleanupStack;
+    // Set of names of fake variables available at this point of code
+    private Set<String> fakeVars;
+    // Stack of lists of variables to delete from fake vars set after the end of the current scope
+    private Deque<ArrayList<String>> fakeVarsStack;
     // Last generated obfuscated variable name
     private String lastIdReplacement;
     // States whether or not current parse context allows variable renaming
@@ -26,6 +30,8 @@ public class JavaObfuscatingVisitor extends AbstractParseTreeVisitor<String> imp
     JavaObfuscatingVisitor() {
         idReplacementMap = new HashMap<>();
         scopeCleanupStack = new ArrayDeque<>();
+        fakeVars = new HashSet<>();
+        fakeVarsStack = new ArrayDeque<>();
         lastIdReplacement = "I0100";
         isRenamingAllowed = false;
         currentIndentLevel = 0;
@@ -59,12 +65,17 @@ public class JavaObfuscatingVisitor extends AbstractParseTreeVisitor<String> imp
     public String visitBlock(JavaBasicParser.BlockContext ctx) {
         currentIndentLevel++;
         pushScope();
-        String contents = ctx.blockStatement().stream()
-                                              .map((x) -> indent() + visit(x))
-                                              .collect(Collectors.joining("\n"));
+        List<String> contents = new ArrayList<>();
+        for (JavaBasicParser.BlockStatementContext c : ctx.blockStatement()) {
+            String line = indent() + visit(c);
+            contents.add(line);
+            if (new Random().nextInt(2) == 0) {
+                contents.add(indent() + generateRandomUselessStatement());
+            }
+        }
         popScope();
         currentIndentLevel--;
-        return String.format("{\n%s\n%s}", contents, indent());
+        return String.format("{\n%s\n%s}", String.join("\n", contents), indent());
     }
 
     @Override
@@ -163,8 +174,7 @@ public class JavaObfuscatingVisitor extends AbstractParseTreeVisitor<String> imp
     @Override
     public String visitVarDeclBlockStatement(JavaBasicParser.VarDeclBlockStatementContext ctx) {
         String finalMod = optionalModifier(ctx.FINAL());
-        String result = String.format("%s%s %s;", finalMod, visit(ctx.typeType()), visit(ctx.variableDeclarators()));
-        return result;
+        return String.format("%s%s %s;", finalMod, visit(ctx.typeType()), visit(ctx.variableDeclarators()));
     }
 
     @Override
@@ -364,6 +374,49 @@ public class JavaObfuscatingVisitor extends AbstractParseTreeVisitor<String> imp
         return lastIdReplacement;
     }
 
+    private String generateRandomUselessStatement() {
+        final String[] primitiveIntegerTypes = {"int", "long", "short"};
+
+        int action = new Random().nextInt(6);
+        String type = primitiveIntegerTypes[new Random().nextInt(primitiveIntegerTypes.length)];
+        String randomVar = getRandomFakeVariable();
+        if (randomVar == null) {
+            action = 0;
+        }
+
+        switch (action) {
+            case 0: // New variable with random value
+                return String.format("%s %s = %d;", type, newFakeVariable(), new Random().nextInt(32768));
+            case 1: // New variable assigned from existing fake var
+                return String.format("%s %s = (%s) %s;", type, newFakeVariable(), type, randomVar);
+            case 2: // Useless instanceof check
+                return String.format("boolean %s = (Object)%s instanceof Object;", newFakeVariable(), randomVar);
+            case 3: // Self-assignment with ternary
+                return String.format("%s = true ? %s : %s;", randomVar, randomVar, randomVar);
+            case 4: // Self-assignment
+                return String.format("%s = %s;", randomVar, randomVar);
+            case 5: // Increase
+                return String.format("%s += %d;", randomVar, new Random().nextInt(32768));
+            default: // Binary "and" with self
+                return String.format("%s &= %s;", randomVar, randomVar);
+        }
+    }
+
+    private String getRandomFakeVariable() {
+        if (fakeVars.isEmpty()) {
+            return null;
+        }
+        List<String> l = new ArrayList<>(fakeVars);
+        return l.get(new Random().nextInt(l.size()));
+    }
+
+    private String newFakeVariable() {
+        String name = nextIdReplacement();
+        fakeVars.add(name);
+        fakeVarsStack.getLast().add(name);
+        return name;
+    }
+
     /* String functions */
     static private String multiplyString(String s, int times) {
         return new String(new char[times]).replace("\0", s);
@@ -375,7 +428,10 @@ public class JavaObfuscatingVisitor extends AbstractParseTreeVisitor<String> imp
     }
 
     /* Variable scope logic for identifier replacement */
-    private void pushScope() { scopeCleanupStack.push(new ArrayList<>()); }
+    private void pushScope() {
+        scopeCleanupStack.push(new ArrayList<>());
+        fakeVarsStack.push(new ArrayList<>());
+    }
 
     private String replaceId(TerminalNode identifier, boolean canCreateNew) {
         String varName = identifier.getText();
@@ -394,5 +450,8 @@ public class JavaObfuscatingVisitor extends AbstractParseTreeVisitor<String> imp
         }
     }
 
-    private void popScope() { idReplacementMap.keySet().removeAll(scopeCleanupStack.pop()); }
+    private void popScope() {
+        idReplacementMap.keySet().removeAll(scopeCleanupStack.pop());
+        fakeVars.removeAll(fakeVarsStack.pop());
+    }
 }
