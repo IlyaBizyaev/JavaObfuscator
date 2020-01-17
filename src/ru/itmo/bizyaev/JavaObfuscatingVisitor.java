@@ -68,10 +68,10 @@ public class JavaObfuscatingVisitor extends AbstractParseTreeVisitor<String> imp
         List<String> contents = new ArrayList<>();
         for (JavaBasicParser.BlockStatementContext c : ctx.blockStatement()) {
             String line = indent() + visit(c);
-            contents.add(line);
             if (new Random().nextInt(2) == 0) {
                 contents.add(indent() + generateRandomUselessStatement());
             }
+            contents.add(line);
         }
         popScope();
         currentIndentLevel--;
