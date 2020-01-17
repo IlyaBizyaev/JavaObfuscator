@@ -19,7 +19,6 @@ public class Main {
 
         try {
             String obfuscatedCode = obfuscate(args[0]);
-            System.out.println(obfuscatedCode);
             try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(args[1]), StandardCharsets.UTF_8)) {
                 writer.write(obfuscatedCode);
             } catch (IOException e) {
@@ -34,6 +33,6 @@ public class Main {
         JavaBasicLexer lexer = new JavaBasicLexer(CharStreams.fromFileName(inputFilePath, StandardCharsets.UTF_8));
         JavaBasicParser parser = new JavaBasicParser(new CommonTokenStream(lexer));
         JavaObfuscatingVisitor visitor = new JavaObfuscatingVisitor();
-        return visitor.visitCompilationUnit(parser.compilationUnit()); // .exception
+        return visitor.visitCompilationUnit(parser.compilationUnit());
     }
 }
