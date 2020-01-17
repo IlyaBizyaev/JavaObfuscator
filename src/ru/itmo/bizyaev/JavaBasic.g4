@@ -181,9 +181,7 @@ DECIMAL_LITERAL:    ('0' | [1-9] (Digits? | '_'+ Digits)) [lL]?;
 FLOAT_LITERAL:      (Digits '.' Digits? | '.' Digits) [fFdD]?
              |       Digits ([fFdD])
              ;
-BOOL_LITERAL:       'true'
-            |       'false'
-            ;
+BOOL_LITERAL:       'true' | 'false';
 CHAR_LITERAL:       '\'' (~['\\\r\n]) '\'';
 STRING_LITERAL:     '"' (~["\\\r\n])* '"';
 NULL_LITERAL:       'null';
@@ -195,7 +193,7 @@ LBRACE:             '{';
 RBRACE:             '}';
 LBRACK:             '[';
 RBRACK:             ']';
-SEMI:               ';';
+SEMICOLON:          ';';
 COMMA:              ',';
 DOT:                '.';
 
