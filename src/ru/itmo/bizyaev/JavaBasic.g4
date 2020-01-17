@@ -68,6 +68,7 @@ blockStatement
 statement
     : block                                              #newBlockStatement
     | IF '(' expression ')' succBranch=statement (ELSE failBranch=statement)?  #ifStatement
+    | WHILE '(' expression ')' statement #whileStatement
     | RETURN? expression? ';'        #expressionStatement
     ;
 
@@ -172,6 +173,7 @@ VOID:               'void';
 
 ELSE:               'else';
 IF:                 'if';
+WHILE:              'while';
 NEW:                'new';
 RETURN:             'return';
 THIS:               'this';

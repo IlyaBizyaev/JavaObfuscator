@@ -199,6 +199,11 @@ public class JavaObfuscatingVisitor extends AbstractParseTreeVisitor<String> imp
     }
 
     @Override
+    public String visitWhileStatement(JavaBasicParser.WhileStatementContext ctx) {
+        return String.format("while (%s) %s", visit(ctx.expression()), visit(ctx.statement()));
+    }
+
+    @Override
     public String visitExpressionStatement(JavaBasicParser.ExpressionStatementContext ctx) {
         String ret = ctx.RETURN() == null ? "" : "return";
         String exp = visitIfNotNull(ctx.expression());
@@ -375,7 +380,7 @@ public class JavaObfuscatingVisitor extends AbstractParseTreeVisitor<String> imp
     }
 
     private String generateRandomUselessStatement() {
-        final String[] primitiveIntegerTypes = {"int", "long", "short"};
+        final String[] primitiveIntegerTypes = {"int", "long"};
 
         int action = new Random().nextInt(6);
         String type = primitiveIntegerTypes[new Random().nextInt(primitiveIntegerTypes.length)];
@@ -390,7 +395,8 @@ public class JavaObfuscatingVisitor extends AbstractParseTreeVisitor<String> imp
             case 1: // New variable assigned from existing fake var
                 return String.format("%s %s = (%s) %s;", type, newFakeVariable(), type, randomVar);
             case 2: // Useless instanceof check
-                return String.format("boolean %s = (Object)%s instanceof Object;", newFakeVariable(), randomVar);
+                return String.format("%s %s = (Object)%s instanceof Object ? %d : %d;", type, newFakeVariable(),
+                        randomVar, new Random().nextInt(32768), new Random().nextInt(32768));
             case 3: // Self-assignment with ternary
                 return String.format("%s = true ? %s : %s;", randomVar, randomVar, randomVar);
             case 4: // Self-assignment
